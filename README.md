@@ -1,28 +1,77 @@
 # Dialed
 
-TODO: Delete this and the text below, and describe your gem
+A modern, ergonomic HTTP client for Ruby built on top of [async-http](https://github.com/socketry/async-http). Designed to embody the [principle of least surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment#:~:text=In%20user%20interface%20design%20and,not%20astonish%20or%20surprise%20users).
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/dialed`. To experiment with that code, run `bin/console` for an interactive prompt.
+Currently in alpha, but supports the following:
+* HTTP/2
+* HTTP proxying via CONNECT
+* Persistent connections
+* Concurrent requests
+ 
+And partially supports (still WIP):
+* HTTP/1.X
+* Automatic connection pooling
+
+
+
+
+##
+
+
 
 ## Installation
-
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
 
 Install the gem and add to the application's Gemfile by executing:
 
 ```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+bundle add dialed
 ```
 
 If bundler is not being used to manage dependencies, install the gem by executing:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+gem install dialed
 ```
 
 ## Usage
+```ruby
+client = Dialed::Client.build do |c|
+  c.version = 'HTTP/2'
+  c.host = 'httpbin.org'
+  c.port = 443
+  c.proxy do |p|
+    p.host = 'localhost'
+    p.port = '8888'
+  end
+end
 
-TODO: Write usage instructions here
+# Synchronous usage:
+# 
+result = client.get('/get')
+puts result
+
+
+# Asynchronous usage:
+# 
+# Supports all the primitives of the wonderful async gem, and also includes a helper
+# for less boilerplate:
+#
+task = client.async do |async_client, yielder|
+  
+  10.times do
+    yielder << async_client.get('/get')
+  end
+end
+
+# the task produces an Enumerator::Lazy instance
+result_enum = task.wait
+
+result_enum.each do |result|
+  puts result
+end
+```
+
+
 
 ## Development
 
