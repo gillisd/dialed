@@ -3,8 +3,8 @@
 module Dialed
   module HTTP
     class ConnectionBuilder
-      DirectConnectionConfiguration = Data.define(:uri, :version, :ssl_context)
-      TunneledConnectionConfiguration = Data.define(:uri, :proxy_uri, :version, :ssl_context)
+      DirectConnectionConfiguration = Data.define(:destination, :version, :ssl_context, :connection_klass)
+      TunneledConnectionConfiguration = Data.define(:destination, :proxy_uri, :version, :ssl_context, :connection_klass,)
       using Dialed::Refinements::Presence
 
       attr_accessor :ssl_context
@@ -14,7 +14,8 @@ module Dialed
       delegate :host=, :port=, to: :uri
 
       def self.apply_defaults
-        new.tap(&:apply_defaults!)
+        new
+        # new.tap(&:apply_defaults!)
       end
 
       def initialize
@@ -52,25 +53,37 @@ module Dialed
         uri_valid? && !ssl_context.nil? && version.present?
       end
 
+      def destination
+        if uri.empty?
+          DynamicDestination.new
+        else
+          StaticDestination.new(uri)
+        end
+      end
+
       def build
-        apply_defaults!
-        raise Dialed::Error, 'Cannot build. Invalid' unless valid?
+        # apply_defaults!
+        # raise Dialed::Error, 'Cannot build. Invalid' unless valid?
 
         if proxy_uri
-          configuration = TunneledConnectionConfiguration.new(
-            uri:         uri,
-            version:     version,
-            ssl_context: ssl_context,
-            proxy_uri:   proxy_uri
+          configuration = OpenStruct.new(
+            destination: destination,
+            connection_configuration: OpenStruct.new(
+              version: version,
+              ssl_context: ssl_context,
+              proxy_uri: proxy_uri,
+              connection_klass: TunneledConnection
+            )
           )
-          TunneledConnection.new(configuration)
         else
-          configuration = DirectConnectionConfiguration.new(
-            uri:         uri,
-            version:     version,
-            ssl_context: ssl_context
+          configuration = OpenStruct.new(
+            destination: destination,
+            connection_configuration: OpenStruct.new(
+              version: version,
+              ssl_context: ssl_context,
+              connection_klass: DirectConnection
+            )
           )
-          DirectConnection.new(configuration)
         end
       end
 

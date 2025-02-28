@@ -3,10 +3,10 @@
 module Dialed
   module HTTP
     class Connection
-      attr_reader :configuration
+      attr_reader :configuration, :remote_uri
 
       delegate :ssl_context, to: :configuration
-      delegate :uri, :version, to: :configuration, prefix: :remote
+      delegate :version, to: :configuration, prefix: :remote
       delegate :host, :port, to: :remote_host
       delegate :authority, :scheme, to: :remote_uri
 
@@ -15,9 +15,13 @@ module Dialed
 
       alias remote_host remote_uri
 
-      def initialize(configuration)
-        @semaphore = Async::Semaphore.new
-        # @semaphore2 = Async::Semaphore.new
+      def self.from_configuration(remote_uri, configuration:)
+        connection_klass = configuration.connection_klass
+        connection_klass.new(remote_uri, configuration: configuration)
+      end
+
+      def initialize(remote_uri, configuration:)
+        @remote_uri = remote_uri
         @configuration = configuration
       end
 
@@ -30,40 +34,31 @@ module Dialed
       end
 
       def closed?
-        internal_connection.closed?
+        return false if @internal_connection.nil?
+        @internal_connection.closed?
       end
 
       def open?
+        return false if @internal_connection.nil?
         !closed?
       end
 
-      # def call(...)
-      #   Sync do
-      #     @semaphore2.acquire do
-      #       Sync do
-      #         reconnect! if closed?
-      #       end
-      #       internal_connection.call(...)
-      #     end
-      #   end
-      # end
-
       def connect
+        if @internal_connection.nil?
+          @internal_connection = create_internal_connection
+          return open?
+        end
+        return true if open?
+        raise Dialed::Error, "Connection already closed" if closed?
         open?
-        # !!internal_connection
       rescue StandardError => e
+        raise e if e.is_a?(NilConnection::NilConnectionError)
         @internal_connection = NilConnection.new
         raise e
       end
 
       def nil_connection?
         false
-      end
-
-      def reconnect!
-        @semaphore.acquire do
-          @internal_connection = create_internal_connection
-        end
       end
 
       def close
@@ -82,20 +77,21 @@ module Dialed
       # requests are being made concurrently and the connection does not yet exist. Unclear if this is needed
       # after the connection has been created and/or if async-http handles its own isolation
       def internal_connection
-        @semaphore.acquire do
-          __fetch_internal_connection
-        end
+        # @semaphore.acquire do
+        @internal_connection
+        # __fetch_internal_connection
+        # end
       end
 
-      def __fetch_internal_connection
-        @internal_connection = create_internal_connection if needs_new_connection?
-        @internal_connection
-      end
+      # def __fetch_internal_connection
+      # @internal_connection = create_internal_connection if needs_new_connection?
+      # @internal_connection
+      # end
 
       # Instead, use the instance variable directly:
-      def needs_new_connection?
-        @internal_connection.nil? || @internal_connection.closed? # Correct - Checks raw state
-      end
+      # def needs_new_connection?
+      #   @internal_connection.nil? || @internal_connection.closed? # Correct - Checks raw state
+      # end
 
       def async_http_protocol
         case remote_version

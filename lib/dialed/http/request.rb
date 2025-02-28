@@ -21,6 +21,9 @@ module Dialed
         #   authority: connection.authority,
         #   scheme:    connection.scheme,
         # ]
+        if connection.nil_connection?
+          raise Dialed::Error, "Connection is nil"
+        end
         protocol_request = Protocol::HTTP::Request.new.tap do |r|
           r.path = path
           r.method = verb.upcase

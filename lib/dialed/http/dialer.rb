@@ -3,12 +3,17 @@
 module Dialed
   module HTTP
     class Dialer
-      attr_reader :connection
+      attr_reader :connection, :base_uri
 
-      def initialize(builder = ConnectionBuilder.apply_defaults, lazy: true, &block)
-        @builder = builder
+      delegate :destination, to: :configuration
+
+      attr_reader :configuration
+
+      def initialize(base_uri, configuration:, &block)
+        @semaphore = Async::Semaphore.new
+        @base_uri = base_uri
+        @configuration = configuration
         @connection = NilConnection.new
-        @lazy = lazy
         start_session(&block) if block_given?
       end
 
@@ -16,16 +21,12 @@ module Dialed
         connection.open?
       end
 
-      def lazy?
-        @lazy
-      end
-
       def disconnected?
         connection.closed?
       end
 
       def current_host
-        return nil unless on_a_call?
+        return nil unless connected?
 
         connection.remote_host
       end
@@ -37,36 +38,30 @@ module Dialed
         hangup!
       end
 
-      def call(verb, location, *args, proxy_uri: nil, **kwargs)
-        location_uri = Addressable::URI.parse(location)
-        request = Request.new(verb, location_uri.path, *args, **kwargs)
+      def connect
+        attempt_connection!
+      end
+
+      def call(verb, path, *args, **kwargs)
+        request = Request.new(verb, path, *args, **kwargs)
         response = (
           if connection.open?
             response = request.call(connection)
             Response.new(response)
-          elsif lazy?
-            @builder.uri = location_uri
-            @builder.proxy_uri = proxy_uri if proxy_uri
-            success = attempt_connection!
-            raise Dialed::Error, "Failed to connect to #{location}. connection status: #{connection.open?}" unless success
-
-            Response.new(request.call(connection))
           else
             success = attempt_connection!
             raise Dialed::Error, "Failed to connect to #{location}. connection status: #{connection.open?}" unless success
 
             Response.new(request.call(connection))
           end
-
         )
 
-        return response unless block_given?
-
-        begin
+        if block_given?
           yield response
-        ensure
-          response.close
+        else
+          return response
         end
+        response.close
       end
 
       def hangup!
@@ -78,7 +73,6 @@ module Dialed
         raise 'Expected connection not to be actually nil' if connection.nil?
         return false if connection.nil_connection?
         return false if connection.open?
-        return false unless @builder.valid?
 
         true
       end
@@ -86,10 +80,11 @@ module Dialed
       private
 
       def attempt_connection!
+        return true if connection.open?
         return true if ready?
 
-        @connection = @builder.build
-        connection.connect
+        @connection = Connection.from_configuration(@base_uri, configuration: configuration)
+        @connection.connect
       end
     end
   end

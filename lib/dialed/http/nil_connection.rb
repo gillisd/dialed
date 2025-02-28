@@ -3,8 +3,9 @@
 module Dialed
   module HTTP
     class NilConnection < Connection
-      def initialize
-        super(uri: nil, version: nil, ssl_context: nil)
+      NilConnectionError = Class.new(StandardError)
+      def initialize(...)
+        super(nil, configuration: OpenStruct.new(version: nil, ssl_context: nil))
       end
 
       def remote_host
@@ -41,10 +42,14 @@ module Dialed
 
       private
 
+      def create_internal_connection
+        raise NilConnectionError, 'Tried to create an internal connection on a NilConnection'
+      end
+
       def internal_connection
         Class.new do
           def call(...)
-            raise Dialed::Net::HTTP::ConnectionError, 'Tried to call a nil connection'
+            raise NilConnectionError, 'Tried to call a nil connection'
           end
         end.new
       end

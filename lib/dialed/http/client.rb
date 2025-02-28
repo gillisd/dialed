@@ -2,9 +2,12 @@
 
 module Dialed
   module HTTP
+
     class Client
+      attr_reader :configuration
+
       def self.build(&block)
-        ExplicitClient.new create_connection_builder(&block)
+        new create_connection_builder(&block).build
       end
 
       def self.create_connection_builder(&block)
@@ -17,73 +20,30 @@ module Dialed
       end
 
       def close
-        return if @closed
-
-        @closed = true
-        with_dialer(&:hangup!)
-      end
-
-      attr_accessor :waiter
-
-      def initialize(connection_builder = ConnectionBuilder.apply_defaults)
-        @connection_builder = connection_builder
-        @async_task_count = 0
-        @closed = false
-      end
-
-      def get(location, query: {}, **kwargs)
-        with_dialer do |dialer|
-          response = dialer.call('GET', location, **kwargs)
-          response
+        Kernel.with_warnings(nil) do
+          operator.close
         end
       end
 
-      def async(&block)
-        Async do |task|
-          waiter = Async::Waiter.new(parent: task)
-          waiting_client = dup
-          waiting_client.waiter = waiter
-          arr = []
-          implicit = block.call(waiting_client, arr)
-          if arr.empty?
-            waiter.wait(waiter.instance_variable_get(:@done).count)
-            implicit
-          else
-            enum = Enumerator::Lazy.new(arr) do |yielder, *values|
-              if values.size == 1
-                value = values.first
-                value.wait
-                yielder << value.result
-              else
-                values.each(&:wait)
-                yielder << values.map(&:result)
-              end
-            end
-            enum
-          end
-        end
+      def initialize(configuration = ConnectionBuilder.new.build)
+        @configuration = configuration.freeze
       end
 
-      attr_reader :connection_builder
+      def get(location, **kwargs, &block)
+        uri = destination.uri_for(location)
+        dialer = operator.get_dialer(uri, connection_configuration: configuration.connection_configuration)
+        dialer.call('GET', uri.request_uri, **kwargs, &block)
+      end
 
-      def with_dialer(&block)
-        if waiter
-          waiter.async do
-            fetch_dialer(&block)
-          end
-        elsif Async::Task.current?
-          fetch_dialer do |dialer|
-            block.call(dialer)
-          end
-        else
-          Sync do
-            fetch_dialer do |dialer|
-              dialer.start_session do |session|
-                block.call(session)
-              end
-            end
-          end
-        end
+      private
+
+      def operator
+        # in explicit client, it gets its own operator
+        Operator.instance
+      end
+
+      def destination
+        @configuration.destination
       end
     end
   end
