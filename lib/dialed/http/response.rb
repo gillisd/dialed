@@ -1,5 +1,16 @@
 # frozen_string_literal: true
 
+require 'async/http'
+::Async::HTTP::Body::Reader.module_eval do
+  def buffered!
+    if @body
+      @body = @body.finish
+    end
+
+    return self
+  end
+end
+
 module Dialed
   module HTTP
     class Response
@@ -8,7 +19,7 @@ module Dialed
       def initialize(internal_response)
         @internal_response = internal_response
         @notifier = Async::Notification.new
-        @internal_response.buffered!
+        buffer!
       end
 
       def body
@@ -24,6 +35,10 @@ module Dialed
         end
       end
 
+      def buffer!
+        @internal_response.buffered!
+      end
+
       def http2?
         internal_response.version == 'HTTP/2'
       end
@@ -34,9 +49,9 @@ module Dialed
 
       def headers
         @headers ||= internal_response
-          &.headers
-          &.to_h
-          &.transform_keys(&:to_sym)
+                       &.headers
+                       &.to_h
+                       &.transform_keys(&:to_sym)
       end
 
       private

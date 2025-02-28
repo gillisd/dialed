@@ -10,14 +10,14 @@ module Dialed
       delegate :host, :port, to: :remote_host
       delegate :authority, :scheme, to: :remote_uri
 
-      delegate :http2?, :http1?, to: :internal_connection
-      # delegate :call, to: :internal_connection
+      delegate :version, :http2?, :http1?, to: :internal_connection
+      delegate :call, to: :internal_connection
 
       alias remote_host remote_uri
 
       def initialize(configuration)
         @semaphore = Async::Semaphore.new
-        @semaphore2 = Async::Semaphore.new
+        # @semaphore2 = Async::Semaphore.new
         @configuration = configuration
       end
 
@@ -37,16 +37,16 @@ module Dialed
         !closed?
       end
 
-      def call(...)
-        Sync do
-          @semaphore2.acquire do
-            Sync do
-              reconnect! if closed?
-            end
-            internal_connection.call(...)
-          end
-        end
-      end
+      # def call(...)
+      #   Sync do
+      #     @semaphore2.acquire do
+      #       Sync do
+      #         reconnect! if closed?
+      #       end
+      #       internal_connection.call(...)
+      #     end
+      #   end
+      # end
 
       def connect
         open?

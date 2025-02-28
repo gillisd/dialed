@@ -14,10 +14,12 @@ gem 'async'
 
 gem 'async-http'
 
-gem 'activesupport', '~> 8.0'
+gem 'activesupport', '~> 6.0'
 
 gem 'bootsnap', '~> 1.18', require: false
 
-gem 'ronin-support', '~> 1.1'
+#gem 'ronin-support', '~> 1.1'
 
 gem 'addressable', '~> 2.8'
+
+gem "backports", require: false

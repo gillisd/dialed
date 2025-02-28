@@ -5,11 +5,11 @@ module Dialed
     class Dialer
       attr_reader :connection
 
-      def initialize(builder = ConnectionBuilder.apply_defaults, lazy: true, &)
+      def initialize(builder = ConnectionBuilder.apply_defaults, lazy: true, &block)
         @builder = builder
         @connection = NilConnection.new
         @lazy = lazy
-        start_session(&) if block_given?
+        start_session(&block) if block_given?
       end
 
       def connected?
@@ -37,9 +37,9 @@ module Dialed
         hangup!
       end
 
-      def call(verb, location, *, proxy_uri: nil, **)
+      def call(verb, location, *args, proxy_uri: nil, **kwargs)
         location_uri = Addressable::URI.parse(location)
-        request = Request.new(verb, location_uri.path, *, **)
+        request = Request.new(verb, location_uri.path, *args, **kwargs)
         response = (
           if connection.open?
             response = request.call(connection)
@@ -51,13 +51,11 @@ module Dialed
             raise Dialed::Error, "Failed to connect to #{location}. connection status: #{connection.open?}" unless success
 
             Response.new(request.call(connection))
-
           else
             success = attempt_connection!
             raise Dialed::Error, "Failed to connect to #{location}. connection status: #{connection.open?}" unless success
 
             Response.new(request.call(connection))
-
           end
 
         )

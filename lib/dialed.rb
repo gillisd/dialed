@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
+require 'backports/3.2.0/data'
 require 'zeitwerk'
+
 
 autoload :Pathname, 'pathname'
 autoload :Async, 'async'
@@ -22,6 +24,7 @@ module Async
   autoload :Barrier, 'async/barrier'
   autoload :Semaphore, 'async/semaphore'
   autoload :HTTP, 'async/http'
+  autoload :Waiter, 'async/waiter'
 
   module HTTP
     autoload :Client, 'async/http/client.rb'
@@ -32,7 +35,7 @@ end
 
 loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect(
-  'io'   => 'IO',
+  'io' => 'IO',
   'http' => 'HTTP'
 )
 loader.ignore('test/**/*')
@@ -41,5 +44,6 @@ loader.setup
 
 module Dialed
   class Error < StandardError; end
+
   Client = HTTP::Client
 end

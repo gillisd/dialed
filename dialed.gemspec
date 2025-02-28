@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = 'Supports HTTP/2, HTTP/1.X, HTTP proxying, connection pooling, concurrent requests, and lots more'
   spec.homepage = 'https://github.com/gillisd/dialed'
   spec.license = 'MIT'
-  spec.required_ruby_version = '>= 3.3.0'
+  spec.required_ruby_version = '>= 2.7.5'
 
   #  spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
 

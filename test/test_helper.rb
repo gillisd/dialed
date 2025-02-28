@@ -3,6 +3,8 @@
 # ENV['MT_NO_PLUGINS'] = '1'
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__.to_s)
 
+require 'bundler/setup'
+require 'backports/3.2.0/data'
 require 'pathname'
 require 'zeitwerk'
 require 'minitest/autorun'

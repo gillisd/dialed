@@ -8,6 +8,18 @@ class TestDialed < Minitest::Test
   end
 
   def test_it_does_something_useful
-    assert false
+    Sync do
+      client = Dialed::Client.build do |c|
+        c.version = '2.0'
+        c.uri = 'https://httpbin.org:443'
+        # c.proxy = 'http://localhost:8899'
+      end
+
+      10.times do
+        result = client.get('/get')
+        puts result
+      end
+      client.close
+    end
   end
 end

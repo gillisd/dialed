@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-require 'async/waiter'
 module Dialed
   module HTTP
     class Client
-      def self.build(&)
-        ExplicitClient.new create_connection_builder(&)
+      def self.build(&block)
+        ExplicitClient.new create_connection_builder(&block)
       end
 
       def self.create_connection_builder(&block)

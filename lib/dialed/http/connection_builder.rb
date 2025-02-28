@@ -136,9 +136,9 @@ module Dialed
         @uri = input_no_path
       end
 
-      def proxy(&)
+      def proxy(&block)
         if block_given?
-          uri = ProxyUri.new.tap(&)
+          uri = ProxyUri.new.tap(&block)
           uri.infer_scheme_if_missing!
           raise ArgumentError, "Invalid proxy URI: #{uri.inspect}" unless uri.valid?
 

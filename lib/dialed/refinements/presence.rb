@@ -30,11 +30,23 @@ module Dialed
       end
 
       refine Array do
-        import_methods PresenceMethods
+        def present?
+          !nil? && !empty?
+        end
+
+        def presence
+          self if present?
+        end
       end
 
       refine Hash do
-        import_methods PresenceMethods
+        def present?
+          !nil? && !empty?
+        end
+
+        def presence
+          self if present?
+        end
       end
 
       refine Symbol do
