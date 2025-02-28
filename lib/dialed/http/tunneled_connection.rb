@@ -33,7 +33,8 @@ module Dialed
             raise ProxyConnectError, e
           end
         )
-        async_http_protocol.client(proxied_sock)
+        c =   async_http_protocol.client(proxied_sock)
+        c
       end
 
       private

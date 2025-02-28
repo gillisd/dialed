@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
+require 'bootsnap/setup'
 require 'backports/3.2.0/data'
 require 'zeitwerk'
 

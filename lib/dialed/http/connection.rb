@@ -8,7 +8,7 @@ module Dialed
       delegate :ssl_context, to: :configuration
       delegate :version, to: :configuration, prefix: :remote
       delegate :host, :port, to: :remote_host
-      delegate :authority, :scheme, to: :remote_uri
+      delegate :scheme, to: :remote_uri
 
       delegate :version, :http2?, :http1?, to: :internal_connection
       delegate :call, to: :internal_connection
@@ -30,6 +30,9 @@ module Dialed
       end
 
       def address
+        # if [443, 80].include? port.to_i
+        #   return host
+        # end
         "#{host}:#{port}"
       end
 
@@ -65,11 +68,17 @@ module Dialed
         raise NotImplementedError, 'Subclasses must implement close'
       end
 
+      def authority
+        # if we use remote_connection.authority it will always return the port with the URI.
+        host
+      end
+
       protected
 
       def create_internal_connection
         raise NotImplementedError, 'Subclasses must implement create_internal_connection'
       end
+
 
       private
 
