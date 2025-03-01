@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require 'async/http'
-::Async::HTTP::Body::Reader.module_eval do
-  def buffered!
-    if @body
-      @body = @body.finish
-    end
+if Gem::Version.new(Async::HTTP::VERSION) < Gem::Version.new('0.85.0')
+  ::Async::HTTP::Body::Reader.module_eval do
+    def buffered!
+      if @body
+        @body = @body.finish
+      end
 
-    return self
+      return self
+    end
   end
 end
 
