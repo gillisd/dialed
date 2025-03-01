@@ -2,10 +2,11 @@ module Dialed
   module HTTP
     class ActorExecutor
       class RequestTimeoutError < StandardError; end
-
       class ExecutorClosedError < StandardError; end
+      class QueueFullError < StandardError; end
 
       DEFAULT_TIMEOUT = 30 # seconds
+      DEFAULT_QUEUE_LIMIT = 100 # maximum pending requests
 
       def self.build_client
         Dialed::Client.build do |c|
@@ -20,10 +21,14 @@ module Dialed
         end
       end
 
-      def initialize(client = self.class.build_client)
+      def initialize(client = self.class.build_client, queue_limit: DEFAULT_QUEUE_LIMIT)
         @queue = Thread::Queue.new
         @running = true
         @client = client
+        @queue_limit = queue_limit
+        @current_queue_size = 0
+        @queue_mutex = Mutex.new
+
         @thread = Thread.new do
           begin
             Async do |task|
@@ -41,6 +46,10 @@ module Dialed
                   break unless payload # nil is our shutdown signal
 
                   result_queue, obj, options = payload
+
+                  # Decrement queue size after dequeuing
+                  @queue_mutex.synchronize { @current_queue_size -= 1 }
+
                   begin
                     response = @client.get(*obj, **options)
                     result_queue.push([:response, response])
@@ -67,6 +76,7 @@ module Dialed
         return unless @running
         @running = false
         @queue.clear
+        @queue_mutex.synchronize { @current_queue_size = 0 }
         @queue.push(nil) # Signal to shutdown
         @thread.join(5) # Wait up to 5 seconds for clean shutdown
         @thread.kill if @thread.alive? # Force termination if needed
@@ -75,10 +85,18 @@ module Dialed
       def get(*args, timeout: DEFAULT_TIMEOUT, **kwargs)
         raise ExecutorClosedError, "Executor has been closed" unless @running
 
-        result_queue = Queue.new
-        @queue.push([result_queue, *args, { timeout: timeout, **kwargs }])
+        # Check queue size limit
+        @queue_mutex.synchronize do
+          if @current_queue_size >= @queue_limit
+            raise QueueFullError, "Request queue limit of #{@queue_limit} reached"
+          end
+          @current_queue_size += 1
+        end
 
+        result_queue = Queue.new
         begin
+          @queue.push([result_queue, args, { timeout: timeout, **kwargs }])
+
           status, result = Timeout.timeout(timeout) do
             result_queue.pop
           end
@@ -89,12 +107,27 @@ module Dialed
             return result
           end
         rescue Timeout::Error
+          # If timeout occurs, decrement the queue size counter if the request was never processed
+          # This is best-effort as we can't know for sure if the request was processed yet
+          @queue_mutex.synchronize { @current_queue_size -= 1 } rescue nil
           raise RequestTimeoutError, "Request timed out after #{timeout} seconds"
+        rescue => e
+          # For any other exception, also try to decrement the counter
+          @queue_mutex.synchronize { @current_queue_size -= 1 } rescue nil
+          raise e
         end
       end
 
       def running?
         @running
+      end
+
+      def queue_size
+        @queue_mutex.synchronize { @current_queue_size }
+      end
+
+      def queue_limit
+        @queue_limit
       end
     end
   end

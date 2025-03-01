@@ -8,7 +8,7 @@ class TestDialed < Minitest::Test
   end
 
   def test_it_does_something_useful
-    Sync do |t|
+    Async do |t|
       client = Dialed::Client.build do |c|
         c.version = '2.0'
         c.host = 'httpbin.org'
@@ -28,7 +28,6 @@ class TestDialed < Minitest::Test
       # puts results
       #
       # client.close
-      #
       response =  client.get('/gzip', headers: { 'accept-encoding': 'gzip, deflate, br' })
       puts response
       client.close
