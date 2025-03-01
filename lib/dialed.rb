@@ -5,6 +5,7 @@ require 'bootsnap/setup'
 require 'backports/3.2.0/data'
 require 'zeitwerk'
 
+autoload :Timeout, 'timeout'
 autoload :Pathname, 'pathname'
 autoload :Async, 'async'
 autoload :Tempfile, 'tempfile'
