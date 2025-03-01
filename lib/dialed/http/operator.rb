@@ -1,6 +1,5 @@
 module Dialed
   module HTTP
-
     class Operator
       include Singleton
 

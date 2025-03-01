@@ -15,11 +15,19 @@ module Dialed
         def present?
           false
         end
+
+        def presence
+          nil
+        end
       end
 
       refine String do
         def present?
           !nil? && !empty?
+        end
+
+        def presence
+          self if present?
         end
       end
 
@@ -52,6 +60,10 @@ module Dialed
       refine Symbol do
         def present?
           !nil? && !empty?
+        end
+
+        def presence
+          self if present?
         end
       end
     end

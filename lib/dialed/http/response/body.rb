@@ -3,9 +3,10 @@
 module Dialed
   module HTTP
     class Response::Body
-      def initialize(internal_body)
+      def initialize(internal_body, compression_algorithm: :none)
         @internal_body = internal_body
         @file = nil
+        @compression_algorithm = compression_algorithm
       end
 
       def read
@@ -31,16 +32,33 @@ module Dialed
 
       def http2?; end
 
-      private
-
       def buffered_internal_body
-        @buffered_internal_body ||= begin
-                                      if @file
-                                        return to_io.tap(&:rewind)
-                                                    .read
-                                      end
-                                      internal_body.read
-                                    end
+        @buffered_internal_body ||= buffer_internal_body
+      end
+
+      def buffer_internal_body
+        if @file
+          return to_io.tap(&:rewind)
+                      .read
+        end
+        case @compression_algorithm
+        in 'gzip'
+          # time = Benchmark.measure do
+          reader, writer = IO.pipe
+          writer.binmode
+          writer.sync = true
+          reader.binmode
+          reader.sync = true
+          # io = StringIO.new(internal_body.read)
+          internal_body.call(writer)
+
+          # io.rewind
+          # reader = io
+          # writer.close
+          Zlib::GzipReader.wrap(reader).read
+        in :none
+          internal_body.read
+        end
       end
 
       def internal_body

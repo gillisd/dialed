@@ -23,7 +23,7 @@ module Dialed
       end
 
       def body
-        @body ||= body_klass.new(internal_response.body)
+        @body ||= body_klass.new(internal_response.body, compression_algorithm: compression_algorithm)
       end
 
       def body_klass
@@ -33,6 +33,10 @@ module Dialed
         else
           EveryBody
         end
+      end
+
+      def compression_algorithm
+        headers.dig(:'content-encoding', 0) || :none
       end
 
       def buffer!
