@@ -15,7 +15,6 @@ module Dialed
 
       def self.apply_defaults
         new
-        # new.tap(&:apply_defaults!)
       end
 
       def initialize
