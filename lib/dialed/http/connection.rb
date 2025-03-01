@@ -82,25 +82,9 @@ module Dialed
 
       private
 
-      # A semaphore is used for now to prevent a stampede of opening new connections if multiple
-      # requests are being made concurrently and the connection does not yet exist. Unclear if this is needed
-      # after the connection has been created and/or if async-http handles its own isolation
       def internal_connection
-        # @semaphore.acquire do
         @internal_connection
-        # __fetch_internal_connection
-        # end
       end
-
-      # def __fetch_internal_connection
-      # @internal_connection = create_internal_connection if needs_new_connection?
-      # @internal_connection
-      # end
-
-      # Instead, use the instance variable directly:
-      # def needs_new_connection?
-      #   @internal_connection.nil? || @internal_connection.closed? # Correct - Checks raw state
-      # end
 
       def async_http_protocol
         case remote_version

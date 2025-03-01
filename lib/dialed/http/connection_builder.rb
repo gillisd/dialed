@@ -62,11 +62,8 @@ module Dialed
       end
 
       def build
-        # apply_defaults!
-        # raise Dialed::Error, 'Cannot build. Invalid' unless valid?
-
         if proxy_uri
-          configuration = OpenStruct.new(
+          OpenStruct.new(
             destination: destination,
             connection_configuration: OpenStruct.new(
               version: version,
@@ -76,7 +73,7 @@ module Dialed
             )
           )
         else
-          configuration = OpenStruct.new(
+          OpenStruct.new(
             destination: destination,
             connection_configuration: OpenStruct.new(
               version: version,
