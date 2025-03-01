@@ -1,8 +1,16 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require 'bootsnap/setup'
-require 'backports/3.2.0/data'
+
+begin
+  require 'bootsnap/setup'
+rescue LoadError
+  # Bootsnap is not available, continue without it
+end
+
+if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.2.0')
+  require 'backports/3.2.0/data'
+end
 require 'zeitwerk'
 
 autoload :Timeout, 'timeout'
