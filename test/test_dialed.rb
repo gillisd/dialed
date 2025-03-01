@@ -8,7 +8,7 @@ class TestDialed < Minitest::Test
   end
 
   def test_it_does_something_useful
-    Async do |t|
+    Sync do |t|
       client = Dialed::Client.build do |c|
         c.version = '2.0'
         c.host = 'httpbin.org'

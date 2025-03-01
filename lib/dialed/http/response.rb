@@ -16,7 +16,7 @@ module Dialed
   module HTTP
     class Response
       delegate :to_io, :read, :to_h, :to_s, to: :body
-      delegate_missing_to :internal_response
+      delegate :status, to: :internal_response
 
       def initialize(internal_response)
         @internal_response = internal_response
