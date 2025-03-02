@@ -9,6 +9,8 @@ module Dialed
 
       attr_reader :configuration
 
+      delegate :http1?, :http2?, to: :connection
+
       def initialize(base_uri, configuration:, &block)
         @semaphore = Async::Semaphore.new
         @base_uri = base_uri
@@ -73,6 +75,9 @@ module Dialed
         raise 'Expected connection not to be actually nil' if connection.nil?
         return false if connection.nil_connection?
         return false if connection.open?
+        if connection.respond_to?(:ready?)
+          return false unless connection.ready?
+        end
 
         true
       end
