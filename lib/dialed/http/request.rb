@@ -25,7 +25,8 @@ module Dialed
         path_with_query = path_uri.tap do |u|
           u.query_values = merged_query if merged_query.present?
         end
-        header_object = Protocol::HTTP::Headers[options[:headers].transform_keys(&:to_s)]
+        headers = options.fetch(:headers, {})
+        header_object = Protocol::HTTP::Headers[headers.transform_keys(&:to_s)]
 
         protocol_request = Protocol::HTTP::Request.new.tap do |r|
           r.path = path_with_query.to_s
