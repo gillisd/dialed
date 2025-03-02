@@ -69,6 +69,9 @@ loader.setup
 
 module Dialed
   class Error < StandardError; end
-
   Client = HTTP::Client
+
+  extend self
+
+  delegate :new, :build, to: :Client
 end
