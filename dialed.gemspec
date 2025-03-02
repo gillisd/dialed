@@ -29,7 +29,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'async-http', '>= 0.60.2'
   spec.add_dependency 'addressable', '~> 2.8'
   spec.add_dependency 'zeitwerk'
-  spec.add_dependency 'bootsnap', '>= 1.18'
 
   spec.add_development_dependency 'minitest', '~> 5.25'
   spec.add_development_dependency 'rake', '>= 13.0'
