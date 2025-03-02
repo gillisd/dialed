@@ -30,9 +30,6 @@ module Dialed
       end
 
       def address
-        # if [443, 80].include? port.to_i
-        #   return host
-        # end
         "#{host}:#{port}"
       end
 
@@ -87,6 +84,10 @@ module Dialed
       private
 
       def internal_connection
+
+        if  @internal_connection.nil?
+          @internal_connection
+        end
         @internal_connection
       end
 

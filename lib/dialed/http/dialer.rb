@@ -73,11 +73,7 @@ module Dialed
 
       def ready?
         raise 'Expected connection not to be actually nil' if connection.nil?
-        return false if connection.nil_connection?
-        return false if connection.open?
-        if connection.respond_to?(:ready?)
-          return false unless connection.ready?
-        end
+        return false unless connection.ready?
 
         true
       end

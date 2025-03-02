@@ -40,6 +40,14 @@ module Dialed
         true
       end
 
+      def ready?
+        false
+      end
+
+      def version
+        nil
+      end
+
       private
 
       def create_internal_connection
