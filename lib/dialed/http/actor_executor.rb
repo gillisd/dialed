@@ -21,7 +21,7 @@ module Dialed
         # Start the main processing thread
         @thread = Thread.new do
           Async do |task|
-            while @running || !@requests.empty?
+            while running? || !@requests.empty?
               # Get next batch of requests
               current_batch = nil
               @mutex.synchronize do
@@ -51,6 +51,10 @@ module Dialed
                 sleep 0.01
               end
             end
+            Sync do
+              # This MUST be called within the event loop, and lets wrap it just to make sure
+              operator.close
+            end
 
             close
           end
@@ -58,8 +62,7 @@ module Dialed
       end
 
       def close
-        return unless @running
-        operator.close
+        return unless running?
         @running = false
         @thread.join(5)
         @thread.kill if @thread.alive?

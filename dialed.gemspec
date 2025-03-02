@@ -28,12 +28,12 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'async-io', '>= 1.43.2'
   spec.add_dependency 'async-http', '>= 0.60.2'
   spec.add_dependency 'addressable', '~> 2.8'
+  spec.add_dependency 'concurrent-ruby', '>= 1.3.5'
   spec.add_dependency 'zeitwerk'
 
   spec.add_development_dependency 'minitest', '~> 5.25'
   spec.add_development_dependency 'rake', '>= 13.0'
   spec.add_development_dependency 'irb'
-
 
   if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.2.0')
     spec.add_dependency 'backports', '~> 3.25.0'

@@ -10,7 +10,7 @@ module Dialed
       delegate :host, :port, to: :remote_host
       delegate :scheme, to: :remote_uri
 
-      delegate :version, :http2?, :http1?, :ready?, to: :internal_connection
+      delegate :version, :http2?, :http1?, to: :internal_connection
       delegate :call, to: :internal_connection
 
       alias remote_host remote_uri
@@ -23,6 +23,14 @@ module Dialed
       def initialize(remote_uri, configuration:)
         @remote_uri = remote_uri
         @configuration = configuration
+      end
+
+      def ready?
+        if internal_connection.respond_to?(:ready?)
+          internal_connection.ready?
+        else
+          open?
+        end
       end
 
       def ping

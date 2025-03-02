@@ -17,6 +17,7 @@ module Dialed
         Sync do
           client = Client.new
           response = client.get('https://httpbin.org/anything')
+          client.close
           puts response
         end
       end
@@ -24,6 +25,7 @@ module Dialed
       def test_actor
         client = Client.new
         response = client.get('https://httpbin.org/anything')
+        client.close
         puts response
       end
 
@@ -36,10 +38,10 @@ module Dialed
         end
 
         puts response.to_a
+        client.close
       end
 
       def test_async_helper_async
-        response = nil
         Sync do
           client = Client.new
           response = client.async do |yielder|
@@ -47,8 +49,10 @@ module Dialed
               yielder << client.get("https://httpbin.org/anything?r=#{i}")
             end
           end
+
+          puts response.to_a
+          client.close
         end
-        puts response.to_a
       end
 
       def test_parallel_actor
@@ -67,6 +71,8 @@ module Dialed
           y << future.value!
         end
         puts enum.next
+
+        client.close
       end
     end
   end

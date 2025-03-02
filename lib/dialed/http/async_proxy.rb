@@ -1,7 +1,6 @@
 module Dialed
   module HTTP
     class AsyncProxy
-
       def initialize(client)
         @_client = client
         @futures = []
@@ -10,15 +9,15 @@ module Dialed
       def async(&block)
         begin
           futures = []
-          yielder = Enumerator::Yielder.new(&futures.method(:<<))
+          caller_yielder = Enumerator::Yielder.new(&futures.method(:<<))
 
           # Need to change the value of "client" to self in the block, as instance_exec isn't overriding it.
           block.binding.local_variable_set(:client, self)
 
-          instance_exec(yielder, &block)
+          instance_exec(caller_yielder, &block)
 
-          Enumerator::Lazy.new(futures) do |yielder, *futures|
-            futures.each do |future|
+          Enumerator::Lazy.new(futures) do |yielder, *future_arr|
+            future_arr.each do |future|
               if future.respond_to?(:value!)
                 yielder << future.value!
               elsif future.respond_to?(:wait)
