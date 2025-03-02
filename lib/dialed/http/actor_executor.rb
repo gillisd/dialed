@@ -35,7 +35,6 @@ module Dialed
                   task.async do
                     request_id, executor_request, result_queue = req_data
                     begin
-                      # response = @client.get(*args, **kwargs)
                       response = execute_request(executor_request)
                       result_queue.push([:response, response])
                     rescue => e

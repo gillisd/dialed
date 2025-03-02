@@ -36,25 +36,37 @@ module Dialed
         @buffered_internal_body ||= buffer_internal_body
       end
 
-      def buffer_internal_body
-        if @file
-          return to_io.tap(&:rewind)
-                      .read
-        end
-        case @compression_algorithm
-        in 'gzip'
-          reader, writer = IO.pipe
+      def with_pipe(reader, writer)
+        reader, writer = IO.pipe
+
+        begin
           writer.binmode
           reader.binmode
           writer.sync = true
-          reader.sync = true
-          internal_body.call(writer)
 
-          Zlib::GzipReader.wrap(reader).read
-        in :none
+          yield reader, writer
+        ensure
+          reader.close unless reader.closed?
+          writer.close unless writer.closed?
+        end
+      end
+
+      def buffer_internal_body
+        return to_io.tap(&:rewind).read if @file
+
+        case @compression_algorithm
+          #TODO need to not call buffered! on response for Gzipreader and other stream readers to increase performance
+        when 'gzip'
+          with_pipe do |reader, writer|
+            internal_body.call(writer)
+            writer.close # Close writer to avoid blocking in the read
+            Zlib::GzipReader.wrap(reader).read
+          end
+        when :none
+          # Assuming internal_body is IO-like here
           internal_body.read
         else
-          raise NotImplementedError
+          raise NotImplementedError, "Compression algorithm '#{@compression_algorithm}' not supported"
         end
       end
 
