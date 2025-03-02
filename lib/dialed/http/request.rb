@@ -17,15 +17,20 @@ module Dialed
           raise Dialed::Error, "Connection is nil"
         end
 
-        query = options.fetch(:query, nil).then { _1.presence }
-        path_with_query = Addressable::URI.parse(path).tap do |u|
-          u.query_values = query
+        path_uri = Addressable::URI.parse(path)
+        path_query = path_uri.query_values || {}
+
+        query = options.fetch(:query, {})
+        merged_query = path_query.merge(query)
+        path_with_query = path_uri.tap do |u|
+          u.query_values = merged_query if merged_query.present?
         end
+        header_object = Protocol::HTTP::Headers[options[:headers].transform_keys(&:to_s)]
 
         protocol_request = Protocol::HTTP::Request.new.tap do |r|
-          r.path = path_with_query
+          r.path = path_with_query.to_s
           r.method = verb.upcase
-          r.headers = options[:headers] if options[:headers]
+          r.headers = header_object
           r.version = connection.version
           r.authority = connection.authority
           r.scheme = connection.scheme
