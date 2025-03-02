@@ -16,8 +16,8 @@ module Dialed
           __setobj__(dialer)
         end
 
-        def unlock
-          @semaphore.limit = 100
+        def unlock(limit = 100)
+          @semaphore.limit = limit
         end
 
         def call(...)
@@ -67,7 +67,11 @@ module Dialed
         dialer = Dialer.new(uri_no_path, configuration: connection_config)
         delegate.dialer = dialer
         dialer.connect
-        delegate.unlock
+        if dialer.http1?
+          delegate.unlock(1)
+        else
+          delegate.unlock
+        end
         dialer
       end
 
