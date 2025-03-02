@@ -14,23 +14,25 @@ class TestDialed < Minitest::Test
         c.host = 'httpbin.org'
         c.scheme = 'https'
         c.port = 443
+        c.insecure = true
         c.proxy do |p|
           p.host = 'localhost'
           p.port = 8899
         end
       end
-      # results =  10.times.map do
-      #   result  = t.async do
-      #     response = client.get('/get?foo=bar', headers: { 'x-foo': 'bar' })
-      #   end
-      # end.map(&:wait)
+      results =  10.times.map do
+        result  = t.async do
+          response = client.get('/get?foo=bar', headers: { 'x-foo': 'bar', 'keep-alive': 'timeout=20' })
+        end
+      end.map(&:wait)
       #
       # puts results
       #
       # client.close
-      response =  client.get('/gzip', headers: { 'accept-encoding': 'gzip, deflate, br' })
-      puts response
-      client.close
+      # response =  client.get('/gzip', headers: { 'accept-encoding': 'gzip, deflate, br' })
+      # puts response
+      # client.close
+      puts results
       #
       # response =  client.get('https://example.com')
       # puts response.read
