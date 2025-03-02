@@ -10,7 +10,7 @@ module Dialed
       delegate :host, :port, to: :remote_host
       delegate :scheme, to: :remote_uri
 
-      delegate :version, :http2?, :http1?, to: :internal_connection
+      delegate :version, :http2?, :http1?, :ready?, to: :internal_connection
       delegate :call, to: :internal_connection
 
       alias remote_host remote_uri
@@ -38,7 +38,11 @@ module Dialed
 
       def closed?
         return false if @internal_connection.nil?
-        @internal_connection.closed?
+        if http1?
+          @internal_connection.stream.closed?
+        else
+          @internal_connection.closed?
+        end
       end
 
       def open?
