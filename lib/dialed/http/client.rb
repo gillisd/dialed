@@ -25,8 +25,16 @@ module Dialed
         end
       end
 
+      def self.default_executor
+        ActorExecutor.new
+      end
+
       def initialize(configuration = ConnectionBuilder.new.build)
         @configuration = configuration.freeze
+      end
+
+      def with_executor
+        ActorExecutor.new(self)
       end
 
       def get(location, **kwargs, &block)
