@@ -80,13 +80,11 @@ module Dialed
         raise NotImplementedError, 'Subclasses must implement create_internal_connection'
       end
 
-
       private
 
       def internal_connection
-
-        if  @internal_connection.nil?
-          @internal_connection
+        if @internal_connection.nil?
+          return NilConnection.new
         end
         @internal_connection
       end

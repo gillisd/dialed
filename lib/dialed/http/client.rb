@@ -2,9 +2,10 @@
 
 module Dialed
   module HTTP
+    ExecutorRequest = Data.define(:method, :uri, :connection_configuration, :kwargs, :block)
 
     class Client
-      attr_reader :configuration
+      attr_reader :configuration, :executor
 
       def self.build(&block)
         new create_connection_builder(&block).build
@@ -19,39 +20,52 @@ module Dialed
         ConnectionBuilder.apply_defaults
       end
 
-      def close
-        Kernel.with_warnings(nil) do
-          operator.close
+      def self.determine_executor
+        if Async::Task.current?
+          EventLoopExecutor.new
+        else
+          ActorExecutor.new
         end
       end
 
-      def self.default_executor
-        ActorExecutor.new
+      def wait
+        @executor.wait
       end
 
-      def initialize(configuration = ConnectionBuilder.new.build)
+      def close
+        @executor.close
+      end
+
+      def async(&block)
+        AsyncProxy.new(self).async(&block)
+      end
+
+      def initialize(
+        configuration = ConnectionBuilder.build_with_defaults,
+        executor = self.class.determine_executor
+      )
+        @executor = executor
         @configuration = configuration.freeze
       end
 
-      def with_executor
-        ActorExecutor.new(self)
-      end
-
       def get(location, **kwargs, &block)
-        uri = destination.uri_for(location)
-        dialer = operator.get_dialer(uri, connection_configuration: configuration.connection_configuration)
-        dialer.call('GET', uri.request_uri, **kwargs, &block)
+        request = create_executor_request('GET', location, kwargs, block)
+        @executor.call(request)
       end
 
       private
 
-      def operator
-        # in explicit client, it gets its own operator
-        Operator.instance
-      end
-
-      def destination
-        @configuration.destination
+      def create_executor_request(method, location, kwargs, block)
+        destination = configuration.destination
+        connection_configuration = configuration.connection_configuration
+        uri = destination.uri_for(location)
+        ExecutorRequest.new(
+          method: method,
+          uri: uri,
+          connection_configuration: connection_configuration,
+          kwargs: kwargs,
+          block: block
+        )
       end
     end
   end

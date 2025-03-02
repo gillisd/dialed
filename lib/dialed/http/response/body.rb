@@ -43,21 +43,18 @@ module Dialed
         end
         case @compression_algorithm
         in 'gzip'
-          # time = Benchmark.measure do
           reader, writer = IO.pipe
           writer.binmode
-          writer.sync = true
           reader.binmode
+          writer.sync = true
           reader.sync = true
-          # io = StringIO.new(internal_body.read)
           internal_body.call(writer)
 
-          # io.rewind
-          # reader = io
-          # writer.close
           Zlib::GzipReader.wrap(reader).read
         in :none
           internal_body.read
+        else
+          raise NotImplementedError
         end
       end
 
@@ -65,11 +62,8 @@ module Dialed
         if @internal_body.respond_to?(:rewindable?) && @internal_body.rewindable?
           @internal_body
             .rewind
-          # elsif @internal_body.is_a?(Async::HTTP::Protocol::HTTP2::Input)
         elsif @internal_body.is_a?(Protocol::HTTP::Body::Buffered)
           @internal_body.rewind
-          # buffered_body = @internal_body.finish
-          # buffered_body.rewind
         end
         @internal_body
       end

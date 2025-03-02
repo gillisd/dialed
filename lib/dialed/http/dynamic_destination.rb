@@ -2,6 +2,7 @@ module Dialed
   module HTTP
     class DynamicDestination
       using Refinements::Presence
+
       def initialize(scheme: 'https')
         @scheme = scheme
       end
@@ -10,7 +11,10 @@ module Dialed
         uri = Addressable::URI.parse(location)
         uri.port = uri.inferred_port
         if uri.scheme =~ /http/ && uri.host.present? && uri.port.present?
-          return uri.to_hash.deep_symbolize_keys
+          return uri
+                   .to_hash
+                   .deep_symbolize_keys
+                   .merge(query: uri.query_values)
         end
         if (result_1 = Addressable::Template.new('{scheme}{host}{/path}{?query*}')
                          &.extract(location)

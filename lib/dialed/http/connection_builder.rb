@@ -17,6 +17,10 @@ module Dialed
         new
       end
 
+      def self.build_with_defaults
+        new.build
+      end
+
       def initialize
         @version = :h2
         @proxy_uri = nil
