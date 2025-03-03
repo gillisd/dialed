@@ -36,7 +36,7 @@ module Dialed
         @buffered_internal_body ||= buffer_internal_body
       end
 
-      def with_pipe(reader, writer)
+      def with_pipe
         reader, writer = IO.pipe
 
         begin
