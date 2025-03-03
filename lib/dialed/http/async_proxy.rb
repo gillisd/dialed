@@ -31,6 +31,7 @@ module Dialed
                 future.wait
                 yielder << future.result
               elsif future.is_a?(Dialed::HTTP::Response)
+                warn "A future was not produced - this means your async calls were synchronous"
                 yielder << future
               else
                 raise "Unknown future type: #{future.class}"
