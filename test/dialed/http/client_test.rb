@@ -32,7 +32,7 @@ module Dialed
       def test_async_helper_actor
         client = Client.new
         response = client.async do |yielder|
-          10.times do |i|
+          100.times do |i|
             yielder << client.get("https://httpbin.org/anything?r=#{i}")
           end
         end
@@ -45,7 +45,7 @@ module Dialed
         Sync do
           client = Client.new
           response = client.async do |yielder|
-            10.times do |i|
+            100.times do |i|
               yielder << client.get("https://httpbin.org/anything?r=#{i}")
             end
           end
@@ -53,6 +53,17 @@ module Dialed
           puts response.to_a
           client.close
         end
+      end
+
+      def test_renamed_client
+        mila = Client.new
+        results = mila.async do |yielder|
+          100.times do
+            yielder << mila.get('https://httpbin.org/anything')
+          end
+        end
+        puts results.to_a
+        mila.close
       end
 
       def test_parallel_actor

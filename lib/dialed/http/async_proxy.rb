@@ -12,7 +12,14 @@ module Dialed
           caller_yielder = Enumerator::Yielder.new(&futures.method(:<<))
 
           # Need to change the value of "client" to self in the block, as instance_exec isn't overriding it.
-          block.binding.local_variable_set(:client, self)
+          calling_client_varnames = block
+                                      .binding
+                                      .local_variables.select { block.binding.local_variable_get(_1) == @_client }
+
+          raise "Unexpected number of client variables" unless calling_client_varnames.size == 1
+          calling_client_varname = calling_client_varnames.first
+
+          block.binding.local_variable_set(calling_client_varname, self)
 
           instance_exec(caller_yielder, &block)
 
@@ -23,6 +30,8 @@ module Dialed
               elsif future.respond_to?(:wait)
                 future.wait
                 yielder << future.result
+              elsif future.is_a?(Dialed::HTTP::Response)
+                yielder << future
               else
                 raise "Unknown future type: #{future.class}"
               end
@@ -30,8 +39,12 @@ module Dialed
           end
         ensure
           # Ensure it's changed back to the real, unproxied client
-          block.binding.local_variable_set(:client, @_client)
+          block.binding.local_variable_set(calling_client_varname, @_client)
         end
+      end
+
+      def client
+        self
       end
 
       private
