@@ -7,41 +7,55 @@ module Dialed
       end
 
       def async(&block)
-        begin
-          futures = []
-          caller_yielder = Enumerator::Yielder.new(&futures.method(:<<))
+        futures = []
+        caller_yielder = Enumerator::Yielder.new(&futures.method(:<<))
 
-          # Need to change the value of "client" to self in the block, as instance_exec isn't overriding it.
-          calling_client_varnames = block
-                                      .binding
-                                      .local_variables.select { block.binding.local_variable_get(_1) == @_client }
+        # This is some metaprogramming black magic, but this allows the caller of #async do have the identical interface
+        # of Enumerator.new, that is, one param in the block args. Otherwise the current instance of this proxy would have
+        # to be passed in addition to the yielder. So the black magic gives us:
+        #
+        #   enum = myclient.async do |yielder|
+        #     yielder << myclient.get('example.com')
+        #   end
+        #
+        #   vs.
+        #
+        #   enum = myclient.async do |yielder, client_proxy|
+        #     yielder << client_proxy.get('example.com')
+        #   end
+        #
+        #
+        #
+        calling_client_varnames = block
+          .binding
+          .local_variables.select { block.binding.local_variable_get(_1) == @_client }
 
-          raise "Unexpected number of client variables" unless calling_client_varnames.size == 1
-          calling_client_varname = calling_client_varnames.first
+        raise 'Unexpected number of client variables' unless calling_client_varnames.size == 1
 
-          block.binding.local_variable_set(calling_client_varname, self)
+        calling_client_varname = calling_client_varnames.first
 
-          instance_exec(caller_yielder, &block)
+        block.binding.local_variable_set(calling_client_varname, self)
 
-          Enumerator::Lazy.new(futures) do |yielder, *future_arr|
-            future_arr.each do |future|
-              if future.respond_to?(:value!)
-                yielder << future.value!
-              elsif future.respond_to?(:wait)
-                future.wait
-                yielder << future.result
-              elsif future.is_a?(Dialed::HTTP::Response)
-                warn "A future was not produced - this means your async calls were synchronous"
-                yielder << future
-              else
-                raise "Unknown future type: #{future.class}"
-              end
+        instance_exec(caller_yielder, &block)
+
+        Enumerator::Lazy.new(futures) do |yielder, *future_arr|
+          future_arr.each do |future|
+            if future.respond_to?(:value!)
+              yielder << future.value!
+            elsif future.respond_to?(:wait)
+              future.wait
+              yielder << future.result
+            elsif future.is_a?(Dialed::HTTP::Response)
+              warn 'A future was not produced - this means your async calls were synchronous'
+              yielder << future
+            else
+              raise "Unknown future type: #{future.class}"
             end
           end
-        ensure
-          # Ensure it's changed back to the real, unproxied client
-          block.binding.local_variable_set(calling_client_varname, @_client)
         end
+      ensure
+        # Ensure it's changed back to the real, unproxied client
+        block.binding.local_variable_set(calling_client_varname, @_client)
       end
 
       def client
